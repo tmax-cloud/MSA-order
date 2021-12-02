@@ -12,9 +12,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.json.simple.JSONObject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @RestController
@@ -28,9 +32,10 @@ public class OrderController {
     final RestTemplate restTemplate = new RestTemplate();
     private final OrderRepo orderRepo;
     public int ticket_number = 0;
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     @Autowired
-    private KafkaTemplate<String, JSONObject> kafkaTemplate;
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     private static final String TOPIC = "quantity-update";
 
@@ -38,9 +43,11 @@ public class OrderController {
         this.orderRepo = orderRepo;
     }
 
+
     @GetMapping("/health/ready")
     @ResponseStatus(HttpStatus.OK)
     public void ready(){}
+
 
     @GetMapping("/health/live")
     @ResponseStatus(HttpStatus.OK)
@@ -50,6 +57,8 @@ public class OrderController {
     public List<OrderInfo> getOrder(){
         return orderRepo.findAll();
     }
+
+
     @PostMapping
         public ResponseEntity<String> createOrder(@RequestBody OrderInfo order){
             // TODO : SERVICE
@@ -66,22 +75,28 @@ public class OrderController {
     @PostMapping("/update")
     public String updateQuantity(@RequestBody int id) {
         OrderInfo order = orderRepo.findById(id).orElse(null);
-        if(order == null){
-            // TODO:
-            return "SOMETHING WRONG";
-        }
-        String type = order.getType();
-        if (type.equals("lend") || type.equals("sell")){
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("BOOK_ID", order.getBookId());
-            jsonObject.put("QUANTITY", order.getQuantity()*-1);
-            kafkaTemplate.send(TOPIC,jsonObject);
+            if(order == null){
+                log.info("error occur");
+
+                // TODO:
+                return "SOMETHING WRONG";
+            }
+            String type = order.getType();
+            if (type.equals("lend") || type.equals("sell")){
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("BOOK_ID", order.getBookId());
+                jsonObject.put("QUANTITY", order.getQuantity()*-1);
+                log.info("kafka send message");
+                Gson gson = new GsonBuilder().create();
+                kafkaTemplate.send(TOPIC,gson.toJson(jsonObject));
             return "SUCCEED DEDUCT QUANTITY";
         }else{
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("BOOK_ID", order.getBookId());
             jsonObject.put("QUANTITY", order.getQuantity());
-            kafkaTemplate.send(TOPIC,jsonObject);
+            log.info("kafka send message");
+            Gson gson = new GsonBuilder().create();
+            kafkaTemplate.send(TOPIC,gson.toJson(jsonObject));
             return "SUCCEED INCREASE QUANTITY";
         }
     }
