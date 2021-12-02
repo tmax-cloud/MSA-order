@@ -14,7 +14,7 @@ public class OrderInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private Integer quantity;
-    private String title;
+    private Integer bookId;
     private String type;
     private int payment;
 
