@@ -2,9 +2,11 @@ package com.example.order.controller;
 import com.example.order.model.OrderInfo;
 import com.example.order.repo.OrderRepo;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,6 +29,11 @@ public class OrderController {
     private final OrderRepo orderRepo;
     public int ticket_number = 0;
 
+    @Autowired
+    private KafkaTemplate<String, JSONObject> kafkaTemplate;
+
+    private static final String TOPIC = "quantity-update";
+
     public OrderController(OrderRepo orderRepo) {
         this.orderRepo = orderRepo;
     }
@@ -44,16 +51,16 @@ public class OrderController {
         return orderRepo.findAll();
     }
     @PostMapping
-    public ResponseEntity<String> createOrder(@RequestBody OrderInfo order){
-        // TODO : SERVICE
-        order.setPayment(ticket_number);
-        ticket_number++;
-        orderRepo.save(order);
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("TYPE", order.getType());
-        jsonObject.put("ID", order.getId());
-        final ResponseEntity<String> responseEntity = restTemplate.postForEntity("http://" + paymentAddr + ":" + paymentPort + "/payment",jsonObject, String.class);
-        final String response = responseEntity.getBody();
+        public ResponseEntity<String> createOrder(@RequestBody OrderInfo order){
+            // TODO : SERVICE
+            order.setPayment(ticket_number);
+            ticket_number++;
+            orderRepo.save(order);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("TYPE", order.getType());
+            jsonObject.put("ID", order.getId());
+            final ResponseEntity<String> responseEntity = restTemplate.postForEntity("http://" + paymentAddr + ":" + paymentPort + "/payment",jsonObject, String.class);
+            final String response = responseEntity.getBody();
         return ResponseEntity.ok(String.format(response.trim()));
     }
     @PostMapping("/update")
@@ -65,10 +72,16 @@ public class OrderController {
         }
         String type = order.getType();
         if (type.equals("lend") || type.equals("sell")){
-            // TODO: publish book-info.book.quantity += 1
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("BOOK_ID", order.getBookId());
+            jsonObject.put("QUANTITY", order.getQuantity()*-1);
+            kafkaTemplate.send(TOPIC,jsonObject);
             return "SUCCEED DEDUCT QUANTITY";
         }else{
-            // TODO: publish book-info.book.quantity -= 1
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("BOOK_ID", order.getBookId());
+            jsonObject.put("QUANTITY", order.getQuantity());
+            kafkaTemplate.send(TOPIC,jsonObject);
             return "SUCCEED INCREASE QUANTITY";
         }
     }

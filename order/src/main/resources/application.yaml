@@ -4,9 +4,16 @@ upstream:
   payment:
     serviceAddr: ${PAYMENT_SERVICE_HOST}
     servicePort: 8079
+
+
 spring:
   application:
     name: ${SERVICE_NAME}
+  kafka:
+    producer:
+      bootstrap-servers: kafka:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer : org.apache.kafka.common.serialization.StringSerializer
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST}/${DB_NAME}?useSSL=false
