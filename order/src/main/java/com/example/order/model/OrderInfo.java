@@ -12,9 +12,9 @@ import javax.persistence.Id;
 public class OrderInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-    private Integer quantity;
-    private Integer bookId;
+    private int id;
+    private int quantity;
+    private int bookId;
     private String type;
     private int payment;
 
