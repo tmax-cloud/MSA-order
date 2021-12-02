@@ -9,7 +9,7 @@ import javax.persistence.Id;
 
 @Entity
 @Data
-public class Order {
+public class OrderInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

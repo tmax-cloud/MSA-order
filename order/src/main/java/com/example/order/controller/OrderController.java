@@ -1,5 +1,5 @@
 package com.example.order.controller;
-import com.example.order.model.Order;
+import com.example.order.model.OrderInfo;
 import com.example.order.repo.OrderRepo;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,7 @@ import org.json.simple.JSONObject;
 
 @RestController
 @RequestMapping("/order")
-public class Ordercontroller{
+public class OrderController {
     @Value("${upstream.payment.serviceAddr}")
     private String paymentAddr;
     @Value("${upstream.payment.servicePort}")
@@ -27,7 +27,7 @@ public class Ordercontroller{
     private final OrderRepo orderRepo;
     public int ticket_number = 0;
 
-    public Ordercontroller(OrderRepo orderRepo) {
+    public OrderController(OrderRepo orderRepo) {
         this.orderRepo = orderRepo;
     }
 
@@ -40,11 +40,11 @@ public class Ordercontroller{
     public void live(){}
 
     @GetMapping
-    public List<Order> getOrder(){
+    public List<OrderInfo> getOrder(){
         return orderRepo.findAll();
     }
     @PostMapping
-    public ResponseEntity<String> createOrder(@RequestBody Order order){
+    public ResponseEntity<String> createOrder(@RequestBody OrderInfo order){
         // TODO : SERVICE
         order.setPayment(ticket_number);
         ticket_number++;
@@ -58,7 +58,7 @@ public class Ordercontroller{
     }
     @PostMapping("/update")
     public String updateQuantity(@RequestBody int id) {
-        Order order = orderRepo.findById(id).orElse(null);
+        OrderInfo order = orderRepo.findById(id).orElse(null);
         if(order == null){
             // TODO:
             return "SOMETHING WRONG";
