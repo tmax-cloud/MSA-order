@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk
+FROM docker.io/openjdk:11-jdk
 LABEL PROJECT_NAME=order \
       PROJECT=order
 
