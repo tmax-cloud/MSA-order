@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+---
+apiVersion: cicd.tmax.io/v1
+kind: IntegrationConfig
+metadata:
+  name: msa-order-config
+spec:
+  git:
+    type: github
+    apiUrl: 
+    repository: tmax-cloud/MSA-order
+    token:
+      valueFrom:
+        secretKeyRef:
+          name: yxzzzxh-git-token
+          key: token
+  workspaces:
+    - name : order-workspace
+      persistentVolumeClaim:
+        claimName: order-pvc
+  secrets:
+    - name : tmaxcloudck-docker-hub-secret
+  jobs:
+    postSubmit:
+      - name: maven-package
+        image: docker.io/maven:3.8-jdk-11
+        script: |
+          mvn package
+          cp target/$JAR_NAME $(workspaces.order-workspace.path)/$JAR_NAME
+        env: 
+          - name: JAR_NAME
+            value : order-0.0.1-SNAPSHOT.jar
+        when:
+          branch:
+            - main
+      - name: build-and-push
+        image: quay.io/buildah/stable
+        script: |
+          mkdir target
+          cp $(workspaces.order-workspace.path)/$JAR_NAME ./target/
+          buildah bud --tls-verify=false --storage-driver=vfs --format docker -f Dockerfile -t $IMG_URL:$IMG_VERSION .
+          buildah push --tls-verify=false --storage-driver=vfs $IMG_URL:$IMG_VERSION docker://$IMG_URL:$IMG_VERSION
+        env:
+          - name: IMG_URL
+            value: tmaxcloudck/example-order
+          - name: IMG_VERSION
+            value: latest
+          - name: JAR_NAME
+            value: order-0.0.1-SNAPSHOT.jar
+        securityContext:
+          privileged: true
+        after:
+          - maven-package
+        when:
+          branch:
+            - main
