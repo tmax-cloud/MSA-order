@@ -2,7 +2,7 @@ server:
   port: 8080
 upstream:
   payment:
-    serviceAddr: http://192.168.9.131
+    serviceAddr: 192.168.9.131
     servicePort: 8079
 
 
